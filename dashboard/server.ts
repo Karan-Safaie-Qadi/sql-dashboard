@@ -3,16 +3,74 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { createDashboard, DriverType, formatSQL } from '../dist/index.mjs';
 import { toCSV, toJSON, toJSONLines } from '../dist/export/index.mjs';
+import type { DriverConfig } from '../dist/index.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
+function buildDriverConfig(): DriverConfig {
+  const type = (process.env.DB_TYPE || 'sqlite').toLowerCase();
+
+  switch (type) {
+    case 'mysql':
+      return {
+        type: DriverType.MYSQL,
+        connection: {
+          host: process.env.DB_HOST || 'localhost',
+          port: parseInt(process.env.DB_PORT || '3306'),
+          user: process.env.DB_USER || process.env.DB_USERNAME || 'root',
+          password: process.env.DB_PASSWORD || '',
+          database: process.env.DB_NAME || process.env.DB_DATABASE || 'test',
+        },
+      } as DriverConfig;
+
+    case 'postgres':
+      return {
+        type: DriverType.POSTGRES,
+        connection: {
+          host: process.env.DB_HOST || 'localhost',
+          port: parseInt(process.env.DB_PORT || '5432'),
+          user: process.env.DB_USER || process.env.DB_USERNAME || 'postgres',
+          password: process.env.DB_PASSWORD || '',
+          database: process.env.DB_NAME || process.env.DB_DATABASE || 'postgres',
+          schema: process.env.DB_SCHEMA || 'public',
+        },
+      } as DriverConfig;
+
+    case 'mssql':
+      return {
+        type: DriverType.MSSQL,
+        connection: {
+          server: process.env.DB_HOST || 'localhost',
+          port: parseInt(process.env.DB_PORT || '1433'),
+          user: process.env.DB_USER || process.env.DB_USERNAME || 'sa',
+          password: process.env.DB_PASSWORD || '',
+          database: process.env.DB_NAME || process.env.DB_DATABASE || 'master',
+        },
+      } as DriverConfig;
+
+    default:
+      return {
+        type: DriverType.SQLITE,
+        connection: {
+          mode: (process.env.DB_MODE as 'memory' | 'file') || 'memory',
+          path: process.env.DB_PATH || './dashboard.db',
+        },
+      } as DriverConfig;
+  }
+}
+
+const driverConfig = buildDriverConfig();
+const isMemorySqlite = driverConfig.type === DriverType.SQLITE &&
+  (driverConfig as any).connection?.mode === 'memory';
+
 const db = createDashboard({
-  driver: { type: DriverType.SQLITE, connection: { mode: 'memory' } },
-  logger: { level: 'silent' },
+  driver: driverConfig,
+  logger: { level: process.env.LOG_LEVEL || 'silent' },
   autoConnect: true,
 });
 
-async function initSampleData() {
+async function seedSampleData() {
+  if (!isMemorySqlite) return;
   try {
     await db.query(`CREATE TABLE IF NOT EXISTS users (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -24,18 +82,18 @@ async function initSampleData() {
     )`);
     const c = await db.query('SELECT COUNT(*) as c FROM users');
     if (c.rows[0].c === 0) {
-      await db.query("INSERT INTO users (name, email, role) VALUES ('Alice Johnson', 'alice@example.com', 'admin')");
-      await db.query("INSERT INTO users (name, email, role) VALUES ('Bob Smith', 'bob@example.com', 'editor')");
-      await db.query("INSERT INTO users (name, email, role) VALUES ('Charlie Brown', 'charlie@example.com', 'user')");
-      await db.query("INSERT INTO users (name, email, role) VALUES ('Diana Prince', 'diana@example.com', 'user')");
-      await db.query("INSERT INTO users (name, email, role) VALUES ('Eve Wilson', 'eve@example.com', 'editor')");
-
+      for (const u of [
+        ['Alice Johnson', 'alice@example.com', 'admin'],
+        ['Bob Smith', 'bob@example.com', 'editor'],
+        ['Charlie Brown', 'charlie@example.com', 'user'],
+        ['Diana Prince', 'diana@example.com', 'user'],
+        ['Eve Wilson', 'eve@example.com', 'editor'],
+      ]) {
+        await db.query('INSERT INTO users (name, email, role) VALUES (?, ?, ?)', { params: u });
+      }
       await db.query(`CREATE TABLE IF NOT EXISTS posts (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id INTEGER NOT NULL,
-        title TEXT NOT NULL,
-        body TEXT,
-        published INTEGER DEFAULT 0,
+        id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL,
+        title TEXT NOT NULL, body TEXT, published INTEGER DEFAULT 0,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (user_id) REFERENCES users(id)
       )`);
@@ -46,13 +104,19 @@ async function initSampleData() {
       await db.query("INSERT INTO posts (user_id, title, published) VALUES (3, 'Hello World', 1)");
     }
   } catch (err) {
-    console.error('Init error:', err.message);
+    console.error('Seed error:', (err as Error).message);
   }
 }
 
 const app = express();
 app.use(express.json({ limit: '5mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
+
+app.get('/api/config', (_req, res) => {
+  const safe = { ...driverConfig, connection: { ...driverConfig.connection } };
+  if ((safe as any).connection?.password) (safe as any).connection.password = '***';
+  res.json(safe);
+});
 
 app.post('/api/query', async (req, res) => {
   try {
@@ -61,7 +125,7 @@ app.post('/api/query', async (req, res) => {
     const result = await db.query(sql, { readOnly, timeout, maxRows });
     res.json(result);
   } catch (err) {
-    res.json({ status: 'error', error: err.message, id: '', rows: [], columns: [], rowCount: 0, duration: 0, query: req.body.sql || '' });
+    res.json({ status: 'error', error: (err as Error).message, id: '', rows: [], columns: [], rowCount: 0, duration: 0, query: req.body.sql || '' });
   }
 });
 
@@ -71,7 +135,7 @@ app.post('/api/explain', async (req, res) => {
     if (!sql) return res.status(400).json({ error: 'SQL is required' });
     res.json(await db.explain(sql));
   } catch (err) {
-    res.json({ status: 'error', error: err.message, id: '', rows: [], columns: [], rowCount: 0, duration: 0, query: req.body.sql || '' });
+    res.json({ status: 'error', error: (err as Error).message, id: '', rows: [], columns: [], rowCount: 0, duration: 0, query: req.body.sql || '' });
   }
 });
 
@@ -80,7 +144,7 @@ app.post('/api/format', (req, res) => {
     const { sql } = req.body;
     if (!sql) return res.status(400).json({ error: 'SQL is required' });
     res.json({ formatted: formatSQL(sql) });
-  } catch (err) {
+  } catch {
     res.json({ formatted: req.body.sql });
   }
 });
@@ -89,17 +153,21 @@ app.get('/api/schema', async (_req, res) => {
   try {
     res.json(await db.schema.getSchema());
   } catch (err) {
-    res.json({ error: err.message, tables: [], views: [] });
+    res.json({ error: (err as Error).message, tables: [], views: [] });
   }
 });
 
 app.get('/api/history', (req, res) => {
   try {
-    const page = parseInt(req.query.page) || 1;
-    const pageSize = parseInt(req.query.pageSize) || 10;
-    res.json(db.history.list({ page, pageSize, search: req.query.search, status: req.query.dbstatus }));
+    const page = parseInt(req.query.page as string) || 1;
+    const pageSize = parseInt(req.query.pageSize as string) || 10;
+    res.json(db.history.list({
+      page, pageSize,
+      search: req.query.search as string,
+      status: req.query.dbstatus as string,
+    }));
   } catch (err) {
-    res.json({ error: err.message, data: [], total: 0, page: 1, pageSize: 10, totalPages: 0 });
+    res.json({ error: (err as Error).message, data: [], total: 0, page: 1, pageSize: 10, totalPages: 0 });
   }
 });
 
@@ -112,7 +180,7 @@ app.get('/api/status', async (_req, res) => {
   try {
     const status = await db.status();
     const databases = await db.getDatabases();
-    res.json({ ...status, databases });
+    res.json({ ...status, databases, driverConfig });
   } catch (err) {
     res.json({ connected: false, driver: 'unknown', version: '1.0.1', uptime: 0, history: { total: 0, successful: 0, failed: 0 }, databaseVersion: undefined, databases: [] });
   }
@@ -123,7 +191,7 @@ app.post('/api/security', (req, res) => {
     db.updateSecurity(req.body);
     res.json({ ok: true });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: (err as Error).message });
   }
 });
 
@@ -132,7 +200,7 @@ app.post('/api/export/csv', (req, res) => {
     if (!req.body.result) return res.status(400).json({ error: 'No result data' });
     res.set('Content-Type', 'text/csv').send(toCSV(req.body.result, req.body.options));
   } catch (err) {
-    res.status(500).send(err.message);
+    res.status(500).send((err as Error).message);
   }
 });
 
@@ -141,7 +209,7 @@ app.post('/api/export/json', (req, res) => {
     if (!req.body.result) return res.status(400).json({ error: 'No result data' });
     res.set('Content-Type', 'application/json').send(toJSON(req.body.result, req.body.options));
   } catch (err) {
-    res.status(500).send(err.message);
+    res.status(500).send((err as Error).message);
   }
 });
 
@@ -150,11 +218,15 @@ app.post('/api/export/jsonl', (req, res) => {
     if (!req.body.result) return res.status(400).json({ error: 'No result data' });
     res.set('Content-Type', 'application/jsonl').send(toJSONLines(req.body.result));
   } catch (err) {
-    res.status(500).send(err.message);
+    res.status(500).send((err as Error).message);
   }
 });
 
-const PORT = process.env.PORT || 3000;
-initSampleData().then(() => {
-  app.listen(PORT, () => console.log(`\n  SQL-Dashboard Web UI at http://localhost:${PORT}\n`));
+const PORT = parseInt(process.env.PORT || '3000');
+const init = isMemorySqlite ? seedSampleData() : Promise.resolve();
+init.then(() => {
+  const conn = driverConfig.type === DriverType.SQLITE
+    ? `${(driverConfig as any).connection?.mode || 'memory'}`
+    : `${(driverConfig as any).connection?.host || '?'}:${(driverConfig as any).connection?.port || '?'}/${(driverConfig as any).connection?.database || '?'}`;
+  app.listen(PORT, () => console.log(`\n  SQL-Dashboard Web UI\n  Database: ${driverConfig.type} (${conn})\n  URL:      http://localhost:${PORT}\n`));
 });

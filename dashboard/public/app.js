@@ -368,5 +368,14 @@ async function loadStatus() {
 
 document.getElementById('btn-refresh-status').addEventListener('click', loadStatus);
 
+// Load config
+async function loadConfig() {
+  try {
+    const cfg = await (await fetch('/api/config')).json();
+    document.getElementById('config-content').textContent = JSON.stringify(cfg, null, 2);
+  } catch {}
+}
+
 // Init
 loadStatus();
+loadConfig();
