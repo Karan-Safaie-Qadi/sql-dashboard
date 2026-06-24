@@ -16,18 +16,18 @@
     "database-manager",
     "sql-editor"
   ],
-  "homepage": "https://github.com/yourusername/sql-dashboard",
+  "homepage": "https://github.com/Karan-Safaie-Qadi/sql-dashboard",
   "bugs": {
-    "url": "https://github.com/yourusername/sql-dashboard/issues"
+    "url": "https://github.com/Karan-Safaie-Qadi/sql-dashboard/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/yourusername/sql-dashboard.git"
+    "url": "git+https://github.com/Karan-Safaie-Qadi/sql-dashboard.git"
   },
   "license": "MIT",
   "author": {
-    "name": "SQL Dashboard Team",
-    "url": "https://github.com/yourusername/sql-dashboard"
+    "name": "Karan Safaie Qadi",
+    "url": "https://github.com/Karan-Safaie-Qadi"
   },
   "main": "dist/index.js",
   "module": "dist/index.mjs",

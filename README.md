@@ -7,7 +7,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![TypeScript](https://img.shields.io/badge/%3C%2F%3E-TypeScript-%230074c1.svg)](https://www.typescriptlang.org/)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
-[![CI](https://github.com/yourusername/sql-dashboard/actions/workflows/ci.yml/badge.svg)](https://github.com/yourusername/sql-dashboard/actions/workflows/ci.yml)
+[![CI](https://github.com/Karan-Safaie-Qadi/sql-dashboard/actions/workflows/ci.yml/badge.svg)](https://github.com/Karan-Safaie-Qadi/sql-dashboard/actions/workflows/ci.yml)
 
 **SQL Dashboard** - A professional, feature-rich SQL management library for Node.js admin panels.
 
@@ -447,7 +447,7 @@ Check out the [examples](./examples) directory:
 
 ```bash
 # Clone
-git clone https://github.com/yourusername/sql-dashboard.git
+git clone https://github.com/Karan-Safaie-Qadi/sql-dashboard.git
 
 # Install dependencies
 npm install
@@ -484,8 +484,8 @@ MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## 🙏 Support
 
-- [GitHub Issues](https://github.com/yourusername/sql-dashboard/issues)
-- [Documentation](https://github.com/yourusername/sql-dashboard/wiki)
+- [GitHub Issues](https://github.com/Karan-Safaie-Qadi/sql-dashboard/issues)
+- [Documentation](https://github.com/Karan-Safaie-Qadi/sql-dashboard/wiki)
 
 ---
 
