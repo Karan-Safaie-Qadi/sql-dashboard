@@ -56,7 +56,7 @@ export function validateQuery(
   security?: SecurityConfig
 ): ValidationResult {
   const errors: ValidationError[] = [];
-  const trimmedSql = sql.trim();
+  let trimmedSql = sql.trim();
 
   if (!trimmedSql) {
     errors.push({
@@ -68,7 +68,7 @@ export function validateQuery(
   }
 
   if (!trimmedSql.endsWith(';')) {
-    trimmedSql + ';';
+    trimmedSql = trimmedSql + ';';
   }
 
   const statementType = detectStatementType(trimmedSql);
