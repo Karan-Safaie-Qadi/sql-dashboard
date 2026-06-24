@@ -1,6 +1,6 @@
 {
   "name": "sql-dashboard",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "🚀 Professional SQL management dashboard for admin panels - Execute queries, browse schemas, manage databases with ease",
   "keywords": [
     "sql",
@@ -57,6 +57,11 @@
       "types": "./dist/export/index.d.ts",
       "import": "./dist/export/index.mjs",
       "require": "./dist/export/index.js"
+    },
+    "./demo": {
+      "types": "./dist/demo/index.d.ts",
+      "import": "./dist/demo/index.mjs",
+      "require": "./dist/demo/index.js"
     }
   },
   "files": [
@@ -71,7 +76,7 @@
   "scripts": {
     "build": "tsup src/index.ts --format cjs,esm --dts --clean --splitting --out-dir dist",
     "build:all": "npm run build && npm run build:subpaths",
-    "build:subpaths": "tsup src/middleware/express.ts src/middleware/fastify.ts src/export/index.ts src/drivers/mysql.driver.ts src/drivers/postgres.driver.ts src/drivers/mssql.driver.ts --format cjs,esm --dts --out-dir dist",
+    "build:subpaths": "tsup src/middleware/express.ts src/middleware/fastify.ts src/export/index.ts src/drivers/mysql.driver.ts src/drivers/postgres.driver.ts src/drivers/mssql.driver.ts src/demo/index.ts --format cjs,esm --dts --out-dir dist",
     "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -86,6 +91,7 @@
     "example:basic": "tsx examples/basic.ts",
     "example:express": "tsx examples/express.ts",
     "example:admin": "tsx examples/admin-panel.ts",
+    "demo": "tsx src/demo/index.ts",
     "release": "npm run build:all && npm run test && npm run lint"
   },
   "dependencies": {
