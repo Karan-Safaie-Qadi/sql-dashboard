@@ -92,6 +92,7 @@
     "example:express": "tsx examples/express.ts",
     "example:admin": "tsx examples/admin-panel.ts",
     "demo": "tsx src/demo/index.ts",
+    "dashboard": "tsx dashboard/server.ts",
     "release": "npm run build:all && npm run test && npm run lint",
     "release:publish": "npm run build:all && npm test && npm publish --access public && powershell -Command \"$ver = node -p \\\"require('./package.json').version\\\"; gh release create v$ver --title v$ver --notes \\\"See CHANGELOG.md for details\\\" --generate-notes\""
   },
