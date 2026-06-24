@@ -90,7 +90,7 @@ describe('SQLDashboard Engine', () => {
     const status = await db.status();
     expect(status.connected).toBe(true);
     expect(status.driver).toBe('sqlite');
-    expect(status.version).toBe('1.0.0');
+    expect(status.version).toBe('1.0.1');
   });
 
   it('should get database version', async () => {
