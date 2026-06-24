@@ -85,7 +85,7 @@ export class SQLiteDriver extends BaseDriver {
         columns.push(...stmt.getColumnNames());
 
         if (params && params.length > 0) {
-          stmt.bind(params);
+          stmt.bind(params as any);
         }
 
         while (stmt.step()) {
