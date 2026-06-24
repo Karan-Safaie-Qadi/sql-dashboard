@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SQL-Dashboard</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="app">
+    <aside id="sidebar">
+      <div class="sidebar-header">
+        <h1>SQL-Dashboard</h1>
+        <span class="version">v1.0.1</span>
+      </div>
+      <nav id="tabs">
+        <button class="tab active" data-tab="query">Query</button>
+        <button class="tab" data-tab="schema">Schema</button>
+        <button class="tab" data-tab="history">History</button>
+        <button class="tab" data-tab="export">Export</button>
+        <button class="tab" data-tab="security">Security</button>
+        <button class="tab" data-tab="status">Status</button>
+      </nav>
+      <div class="sidebar-footer">
+        <div id="connection-status" class="status-dot connected"></div>
+        <span id="connection-label">Connected</span>
+        <span id="driver-label" class="driver-badge">sqlite</span>
+      </div>
+    </aside>
+
+    <main id="main-content">
+      <!-- Query Tab -->
+      <section id="panel-query" class="panel active">
+        <div class="panel-header">
+          <h2>SQL Query Editor</h2>
+          <div class="header-actions">
+            <button id="btn-explain" class="btn btn-sm">Explain</button>
+            <button id="btn-format" class="btn btn-sm">Format</button>
+          </div>
+        </div>
+        <div class="query-editor">
+          <textarea id="sql-input" placeholder="Enter SQL query here..." spellcheck="false">SELECT id, name, email, role FROM users LIMIT 10</textarea>
+        </div>
+        <div class="query-actions">
+          <button id="btn-run" class="btn btn-primary">Run Query</button>
+          <label class="query-option">
+            <input type="checkbox" id="chk-readonly"> Read-only
+          </label>
+          <span id="query-status" class="query-status"></span>
+        </div>
+        <div id="query-result" class="result-panel">
+          <div class="result-header">
+            <span id="result-info"></span>
+            <div class="result-actions">
+              <button id="btn-export-csv" class="btn btn-xs" disabled>CSV</button>
+              <button id="btn-export-json" class="btn btn-xs" disabled>JSON</button>
+            </div>
+          </div>
+          <div id="result-table-wrapper" class="table-wrapper">
+            <div class="placeholder">Run a query to see results</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Schema Tab -->
+      <section id="panel-schema" class="panel">
+        <div class="panel-header">
+          <h2>Schema Browser</h2>
+          <button id="btn-refresh-schema" class="btn btn-sm">Refresh</button>
+        </div>
+        <div id="schema-content" class="schema-content">
+          <div class="placeholder">Loading schema...</div>
+        </div>
+      </section>
+
+      <!-- History Tab -->
+      <section id="panel-history" class="panel">
+        <div class="panel-header">
+          <h2>Query History</h2>
+          <div class="header-actions">
+            <button id="btn-clear-history" class="btn btn-sm btn-danger">Clear</button>
+          </div>
+        </div>
+        <div class="history-toolbar">
+          <input type="text" id="history-search" placeholder="Search queries..." class="search-input">
+          <select id="history-status" class="filter-select">
+            <option value="">All Status</option>
+            <option value="success">Success</option>
+            <option value="error">Error</option>
+          </select>
+        </div>
+        <div id="history-stats" class="stats-bar"></div>
+        <div id="history-list" class="history-list">
+          <div class="placeholder">No queries yet</div>
+        </div>
+        <div id="history-pagination" class="pagination"></div>
+      </section>
+
+      <!-- Export Tab -->
+      <section id="panel-export" class="panel">
+        <div class="panel-header">
+          <h2>Export Data</h2>
+        </div>
+        <div class="export-grid">
+          <div class="export-card">
+            <h3>Quick CSV Export</h3>
+            <p>Run a query first, then export results as CSV</p>
+            <button id="btn-export-csv-main" class="btn" disabled>Export CSV</button>
+          </div>
+          <div class="export-card">
+            <h3>Quick JSON Export</h3>
+            <p>Export results as formatted JSON</p>
+            <button id="btn-export-json-main" class="btn" disabled>Export JSON</button>
+          </div>
+          <div class="export-card">
+            <h3>JSON Lines</h3>
+            <p>One JSON object per line</p>
+            <button id="btn-export-jsonl" class="btn" disabled>Export JSONL</button>
+          </div>
+          <div class="export-card">
+            <h3>Export All Tables</h3>
+            <p>Export all table data as CSV</p>
+            <button id="btn-export-all" class="btn">Export All</button>
+          </div>
+        </div>
+        <div id="export-output" class="export-output">
+          <pre id="export-content"></pre>
+        </div>
+      </section>
+
+      <!-- Security Tab -->
+      <section id="panel-security" class="panel">
+        <div class="panel-header">
+          <h2>Security Settings</h2>
+        </div>
+        <div class="security-grid">
+          <div class="security-card">
+            <label class="toggle-label">
+              <input type="checkbox" id="sec-readonly"> Read-Only Mode
+            </label>
+            <p class="card-desc">Blocks all write operations (INSERT, UPDATE, DELETE, DROP)</p>
+          </div>
+          <div class="security-card">
+            <label class="toggle-label">
+              <input type="checkbox" id="sec-require-where" checked> Require WHERE
+            </label>
+            <p class="card-desc">Prevents UPDATE/DELETE without WHERE clause</p>
+          </div>
+          <div class="security-card">
+            <h4>Banned Statements</h4>
+            <input type="text" id="sec-banned" value="DROP,TRUNCATE" placeholder="Comma-separated" class="text-input">
+          </div>
+          <div class="security-card">
+            <h4>Max Rows Returned</h4>
+            <input type="number" id="sec-max-rows" value="1000" min="1" class="text-input">
+          </div>
+          <div class="security-card">
+            <h4>Query Timeout (ms)</h4>
+            <input type="number" id="sec-timeout" value="30000" min="100" class="text-input">
+          </div>
+          <div class="security-card">
+            <h4>Max Query Length</h4>
+            <input type="number" id="sec-max-length" value="10000" min="1" class="text-input">
+          </div>
+        </div>
+        <div class="security-actions">
+          <button id="btn-update-security" class="btn btn-primary">Update Security</button>
+          <span id="security-status" class="query-status"></span>
+        </div>
+      </section>
+
+      <!-- Status Tab -->
+      <section id="panel-status" class="panel">
+        <div class="panel-header">
+          <h2>Dashboard Status</h2>
+          <button id="btn-refresh-status" class="btn btn-sm">Refresh</button>
+        </div>
+        <div id="status-grid" class="status-grid">
+          <div class="stat-card">
+            <span class="stat-label">Connection</span>
+            <span id="stat-connection" class="stat-value connected">Connected</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-label">Driver</span>
+            <span id="stat-driver" class="stat-value">sqlite</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-label">Version</span>
+            <span id="stat-version" class="stat-value">1.0.1</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-label">DB Version</span>
+            <span id="stat-db-version" class="stat-value">-</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-label">Total Queries</span>
+            <span id="stat-total" class="stat-value">0</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-label">Successful</span>
+            <span id="stat-ok" class="stat-value success">0</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-label">Failed</span>
+            <span id="stat-fail" class="stat-value error">0</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-label">Avg Duration</span>
+            <span id="stat-avg" class="stat-value">0ms</span>
+          </div>
+        </div>
+        <h3 style="margin-top:24px;">Databases</h3>
+        <ul id="databases-list" class="db-list"></ul>
+      </section>
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
