@@ -227,11 +227,17 @@ export class SQLDashboard extends EventEmitter<DashboardEvents> {
   }
 
   async explain(sql: string): Promise<QueryResult> {
+    if (this.driver.explain) {
+      return this.driver.explain(sql);
+    }
     const explainSql = `EXPLAIN ${sql.trim().replace(/;$/, '')}`;
     return this.query(explainSql);
   }
 
   async analyze(sql: string): Promise<QueryResult> {
+    if (this.driver.analyze) {
+      return this.driver.analyze(sql);
+    }
     const analyzeSql = `EXPLAIN ANALYZE ${sql.trim().replace(/;$/, '')}`;
     return this.query(analyzeSql);
   }

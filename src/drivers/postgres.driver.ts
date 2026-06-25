@@ -76,7 +76,7 @@ export class PostgresDriver extends BaseDriver {
           query: sql,
         };
       } else {
-        return {
+        const queryResult: QueryResult = {
           id: uuid(),
           status: 'success',
           rows: [],
@@ -86,6 +86,10 @@ export class PostgresDriver extends BaseDriver {
           duration: timer.elapsed,
           query: sql,
         };
+        if (/^\s*INSERT\s/i.test(normalizedSql) && (result.rowCount || 0) > 0) {
+          (queryResult as any).insertedId = result.rows[0]?.id ?? result.rows[0]?.ID;
+        }
+        return queryResult;
       }
     } catch (error) {
       return this.createErrorResult(sql, error as Error, timer.elapsed);

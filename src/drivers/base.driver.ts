@@ -69,4 +69,6 @@ export abstract class BaseDriver {
   abstract getTableRowCount(tableName: string): Promise<number>;
   abstract getVersion(): Promise<string>;
   abstract getDatabases(): Promise<string[]>;
+  explain?(sql: string): Promise<QueryResult>;
+  analyze?(sql: string): Promise<QueryResult>;
 }

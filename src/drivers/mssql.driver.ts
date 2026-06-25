@@ -90,7 +90,7 @@ export class MSSQLDriver extends BaseDriver {
           if (rows.length > 0) {
             resolve(this.createResult(sql, rows, timer.elapsed));
           } else {
-            resolve({
+            const queryResult: QueryResult = {
               id: uuid(),
               status: 'success',
               rows: [],
@@ -98,7 +98,17 @@ export class MSSQLDriver extends BaseDriver {
               rowCount: 0,
               duration: timer.elapsed,
               query: sql,
-            });
+            };
+            if (/^\s*INSERT\s/i.test(sql.trim()) && columns.length === 0) {
+              this.executeQuery('SELECT SCOPE_IDENTITY() as id').then((idResult) => {
+                if (idResult.rows.length > 0 && idResult.rows[0]?.id != null) {
+                  (queryResult as any).insertedId = idResult.rows[0].id;
+                }
+                resolve(queryResult);
+              }).catch(() => resolve(queryResult));
+            } else {
+              resolve(queryResult);
+            }
           }
         }
       });
@@ -271,5 +281,13 @@ export class MSSQLDriver extends BaseDriver {
   async getDatabases(): Promise<string[]> {
     const result = await this.executeQuery('SELECT name FROM sys.databases ORDER BY name;');
     return result.rows.map((r: any) => r.name as string);
+  }
+
+  async explain(sql: string): Promise<QueryResult> {
+    return this.executeQuery(`SET SHOWPLAN_XML ON; ${sql.replace(/;$/, '')}; SET SHOWPLAN_XML OFF;`);
+  }
+
+  async analyze(sql: string): Promise<QueryResult> {
+    return this.executeQuery(`SET STATISTICS PROFILE ON; ${sql.replace(/;$/, '')}; SET STATISTICS PROFILE OFF;`);
   }
 }

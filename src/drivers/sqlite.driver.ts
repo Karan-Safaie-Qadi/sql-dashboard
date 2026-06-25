@@ -96,9 +96,18 @@ export class SQLiteDriver extends BaseDriver {
 
         return this.createResult(sql, rows, timer.elapsed);
       } else {
+        const isInsert = /^\s*INSERT\s/i.test(normalizedSql);
         this.db!.run(normalizedSql, params as (number | string | Uint8Array)[]);
         const affectedRows = this.db!.getRowsModified();
-        return this.createResult(sql, [], timer.elapsed, affectedRows);
+        const result = this.createResult(sql, [], timer.elapsed, affectedRows);
+        if (isInsert && affectedRows > 0) {
+          const idResult = this.db!.exec('SELECT last_insert_rowid() as id;');
+          const idRows = idResult[0]?.values?.[0];
+          if (idRows) {
+            (result as any).insertedId = idRows[0];
+          }
+        }
+        return result;
       }
     } catch (error) {
       return this.createErrorResult(sql, error as Error, timer.elapsed);
