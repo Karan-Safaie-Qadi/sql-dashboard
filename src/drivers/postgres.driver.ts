@@ -1,4 +1,5 @@
 import { BaseDriver } from './base.driver';
+import { v4 as uuid } from 'uuid';
 import type { QueryResult, ColumnInfo, TableInfo, IndexInfo, ForeignKeyInfo, ViewInfo, SchemaInfo, PostgreSQLConfig } from '../types';
 import { DriverType } from '../types';
 import { QueryTimer } from '../utils/timer';
@@ -66,7 +67,7 @@ export class PostgresDriver extends BaseDriver {
 
       if (isSelect || result.rows.length > 0) {
         return {
-          id: crypto.randomUUID(),
+          id: uuid(),
           status: 'success',
           rows: result.rows as Record<string, unknown>[],
           columns: result.fields.map((f) => f.name),
@@ -76,7 +77,7 @@ export class PostgresDriver extends BaseDriver {
         };
       } else {
         return {
-          id: crypto.randomUUID(),
+          id: uuid(),
           status: 'success',
           rows: [],
           columns: [],
