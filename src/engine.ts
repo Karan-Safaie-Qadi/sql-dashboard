@@ -1,4 +1,5 @@
 import { EventEmitter } from 'eventemitter3';
+import { v4 as uuid } from 'uuid';
 import { createDriver, BaseDriver } from './drivers';
 import { SchemaBrowser, QueryHistory } from './admin';
 import { ReadOnlyGuard, RateLimiter } from './security';
@@ -125,7 +126,7 @@ export class SQLDashboard extends EventEmitter<DashboardEvents> {
     const validation = this.validateQuery(sql, opts);
     if (!validation.valid) {
       const errorResult: QueryResult = {
-        id: crypto.randomUUID(),
+        id: uuid(),
         status: 'error',
         rows: [],
         columns: [],
@@ -140,7 +141,7 @@ export class SQLDashboard extends EventEmitter<DashboardEvents> {
 
     if (detectInjection(sql)) {
       const errorResult: QueryResult = {
-        id: crypto.randomUUID(),
+        id: uuid(),
         status: 'error',
         rows: [],
         columns: [],

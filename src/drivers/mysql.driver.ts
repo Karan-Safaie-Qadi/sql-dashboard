@@ -1,4 +1,5 @@
 import { BaseDriver } from './base.driver';
+import { v4 as uuid } from 'uuid';
 import type { QueryResult, ColumnInfo, TableInfo, IndexInfo, ForeignKeyInfo, ViewInfo, SchemaInfo, MySQLConfig } from '../types';
 import { DriverType } from '../types';
 import { QueryTimer } from '../utils/timer';
@@ -74,7 +75,7 @@ export class MySQLDriver extends BaseDriver {
         const typedRows = rows as RowDataPacket[];
         const columns = fields ? fields.map((f) => f.name) : [];
         return {
-          id: crypto.randomUUID(),
+          id: uuid(),
           status: 'success',
           rows: typedRows as unknown as Record<string, unknown>[],
           columns,
@@ -85,7 +86,7 @@ export class MySQLDriver extends BaseDriver {
       } else {
         const result = rows as unknown as ResultSetHeader;
         return {
-          id: crypto.randomUUID(),
+          id: uuid(),
           status: 'success',
           rows: [],
           columns: [],

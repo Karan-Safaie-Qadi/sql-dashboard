@@ -1,4 +1,5 @@
 import { BaseDriver } from './base.driver';
+import { v4 as uuid } from 'uuid';
 import type { QueryResult, ColumnInfo, TableInfo, IndexInfo, ForeignKeyInfo, ViewInfo, SchemaInfo, MSSQLConfig } from '../types';
 import { DriverType } from '../types';
 import { QueryTimer } from '../utils/timer';
@@ -90,7 +91,7 @@ export class MSSQLDriver extends BaseDriver {
             resolve(this.createResult(sql, rows, timer.elapsed));
           } else {
             resolve({
-              id: crypto.randomUUID(),
+              id: uuid(),
               status: 'success',
               rows: [],
               columns: [],
