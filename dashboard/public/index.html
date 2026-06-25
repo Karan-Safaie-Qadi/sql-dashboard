@@ -11,7 +11,7 @@
     <aside id="sidebar">
       <div class="sidebar-header">
         <h1>SQL-Dashboard</h1>
-        <span class="version">v1.0.1</span>
+        <span class="version">v1.2.0</span>
       </div>
       <nav id="tabs">
         <button class="tab active" data-tab="query">Query</button>
@@ -68,8 +68,16 @@
           <h2>Schema Browser</h2>
           <button id="btn-refresh-schema" class="btn btn-sm">Refresh</button>
         </div>
+        <div id="schema-views-section" class="views-section" style="display:none;margin-bottom:16px;">
+          <h3>Views</h3>
+          <div id="schema-views-content"></div>
+        </div>
+        <div class="schema-tables-header" style="margin-bottom:8px;">
+          <strong>Tables</strong>
+          <span id="schema-table-count" class="badge"></span>
+        </div>
         <div id="schema-content" class="schema-content">
-          <div class="placeholder">Loading schema...</div>
+          <div class="placeholder" id="schema-loading">Loading schema...</div>
         </div>
       </section>
 

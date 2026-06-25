@@ -1,11 +1,29 @@
 import express from 'express';
 import path from 'path';
+import fs from 'fs';
+import cors from 'cors';
 import { fileURLToPath } from 'url';
 import { createDashboard, DriverType, formatSQL } from '../dist/index.mjs';
+
+const _dirname = path.dirname(fileURLToPath(import.meta.url));
+
+const envPath = path.resolve(_dirname, '..', '.env');
+if (fs.existsSync(envPath)) {
+  const envContent = fs.readFileSync(envPath, 'utf-8');
+  for (const line of envContent.split('\n')) {
+    const trimmed = line.trim();
+    if (trimmed && !trimmed.startsWith('#')) {
+      const eqIdx = trimmed.indexOf('=');
+      if (eqIdx > 0) {
+        const key = trimmed.substring(0, eqIdx).trim();
+        const val = trimmed.substring(eqIdx + 1).trim().replace(/^["']|["']$/g, '');
+        if (!process.env[key]) process.env[key] = val;
+      }
+    }
+  }
+}
 import { toCSV, toJSON, toJSONLines } from '../dist/export/index.mjs';
 import type { DriverConfig } from '../dist/index.mjs';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 function buildDriverConfig(): DriverConfig {
   const type = (process.env.DB_TYPE || 'sqlite').toLowerCase();
@@ -109,8 +127,9 @@ async function seedSampleData() {
 }
 
 const app = express();
+app.use(cors({ origin: process.env.CORS_ORIGIN || true }));
 app.use(express.json({ limit: '5mb' }));
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(_dirname, 'public')));
 
 app.get('/api/config', (_req, res) => {
   const safe = { ...driverConfig, connection: { ...driverConfig.connection } };

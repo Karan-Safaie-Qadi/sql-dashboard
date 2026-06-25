@@ -123,6 +123,16 @@ function displayResult(result) {
   wrapper.innerHTML = html;
 }
 
+function showLoading(containerId) {
+  const el = document.getElementById(containerId);
+  if (el) el.innerHTML = '<div class="placeholder">Loading...</div><div class="spinner"></div>';
+}
+
+function hideLoading(containerId) {
+  const el = document.getElementById(containerId);
+  if (el) el.innerHTML = '';
+}
+
 function showError(msg) {
   const wrapper = document.getElementById('result-table-wrapper');
   wrapper.innerHTML = `<div class="placeholder" style="color:var(--red)">${msg}</div>`;
@@ -152,15 +162,52 @@ document.getElementById('btn-format').addEventListener('click', () => {
 // Schema
 async function loadSchema() {
   const container = document.getElementById('schema-content');
+  const viewsSection = document.getElementById('schema-views-section');
+  const viewsContent = document.getElementById('schema-views-content');
+  const tableCount = document.getElementById('schema-table-count');
+  showLoading('schema-loading');
   try {
     const schema = await API.schema();
     if (schema.error) { container.innerHTML = `<div class="placeholder">Error: ${schema.error}</div>`; return; }
     const tables = schema.tables || [];
-    if (tables.length === 0) { container.innerHTML = '<div class="placeholder">No tables found</div>'; return; }
-    container.innerHTML = tables.map(t => renderTableCard(t)).join('');
+    const views = schema.views || [];
+    tableCount.textContent = `${tables.length} tables`;
+    if (tables.length === 0) { container.innerHTML = '<div class="placeholder">No tables found</div>'; }
+    else { container.innerHTML = tables.map(t => renderTableCard(t)).join(''); }
+    if (views.length > 0) {
+      viewsSection.style.display = 'block';
+      viewsContent.innerHTML = views.map(v => renderViewCard(v)).join('');
+    } else {
+      viewsSection.style.display = 'none';
+    }
   } catch (err) {
     container.innerHTML = `<div class="placeholder">Error: ${err.message}</div>`;
+  } finally {
+    hideLoading('schema-loading');
   }
+}
+
+function renderViewCard(view) {
+  const cols = (view.columns || []).map(c =>
+    `<span class="col-name" style="display:inline-block;margin-right:12px;">${c.name} <span class="col-type">${c.type}</span></span>`
+  ).join('');
+  return `<div class="schema-table" style="opacity:0.8">
+    <div class="schema-table-header">
+      <h3>${view.name}</h3>
+      <span class="badge">view</span>
+      <span class="badge">${(view.columns || []).length} cols</span>
+    </div>
+    <div class="schema-table-body">
+      <div style="font-size:12px;color:var(--text2);padding:8px 0;max-height:80px;overflow:hidden;">${escapeHtml(view.definition || '')}</div>
+      ${cols ? `<h4>Columns</h4><div>${cols}</div>` : ''}
+    </div>
+  </div>`;
+}
+
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
 }
 
 function renderTableCard(table) {
@@ -197,6 +244,8 @@ async function loadHistory(page = 1) {
   const params = { page, pageSize: 10 };
   if (search) params.search = search;
   if (status) params.dbstatus = status;
+  const list = document.getElementById('history-list');
+  list.innerHTML = '<div class="placeholder">Loading...</div>';
   try {
     const data = await API.history(params);
     const list = document.getElementById('history-list');
@@ -229,7 +278,9 @@ async function loadStatsSummary() {
     document.getElementById('stat-total').textContent = h.total || 0;
     document.getElementById('stat-ok').textContent = h.successful || 0;
     document.getElementById('stat-fail').textContent = h.failed || 0;
-  } catch {}
+  } catch (err) {
+    document.getElementById('history-stats').innerHTML = `<span style="color:var(--red)">Failed to load stats: ${err.message}</span>`;
+  }
 }
 
 function renderPagination(data, current) {
@@ -345,6 +396,8 @@ document.getElementById('btn-update-security').addEventListener('click', async (
 // Status
 async function loadStatus() {
   try {
+    document.getElementById('stat-connection').textContent = 'Loading...';
+    document.getElementById('databases-list').innerHTML = '<li>Loading...</li>';
     const s = await API.status();
     document.getElementById('stat-connection').textContent = s.connected ? 'Connected' : 'Disconnected';
     document.getElementById('stat-connection').className = 'stat-value ' + (s.connected ? 'connected' : 'error');
