@@ -62,13 +62,16 @@ export class PostgresDriver extends BaseDriver {
     return this.connected && this.pool !== null;
   }
 
-  async executeQuery(sql: string, params?: unknown[]): Promise<QueryResult> {
+  async executeQuery(sql: string, params?: unknown[], maxRows?: number): Promise<QueryResult> {
     this.ensureConnected();
     const timer = new QueryTimer();
 
     try {
-      const normalizedSql = sql.trim().replace(/;$/, '');
+      let normalizedSql = sql.trim().replace(/;$/, '');
       const isSelect = /^\s*(SELECT|WITH|SHOW|DESCRIBE|EXPLAIN|ANALYZE)/i.test(normalizedSql);
+      if (isSelect && maxRows && maxRows > 0 && !/\bLIMIT\s+\d+/i.test(normalizedSql)) {
+        normalizedSql = `${normalizedSql} LIMIT ${maxRows}`;
+      }
       const result = await this.pool!.query(normalizedSql, params as any[]);
 
       if (isSelect || result.rows.length > 0) {

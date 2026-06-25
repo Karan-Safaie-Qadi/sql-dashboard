@@ -17,7 +17,7 @@ export abstract class BaseDriver {
 
   abstract connect(): Promise<void>;
   abstract disconnect(): Promise<void>;
-  abstract executeQuery(sql: string, params?: unknown[]): Promise<QueryResult>;
+  abstract executeQuery(sql: string, params?: unknown[], maxRows?: number): Promise<QueryResult>;
   abstract executeBatch(queries: string[]): Promise<QueryResult[]>;
   abstract isConnected(): boolean;
 

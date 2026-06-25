@@ -156,8 +156,8 @@ export class SQLDashboard extends EventEmitter<DashboardEvents> {
 
     try {
       const queryPromise = opts.params
-        ? this.driver.executeQuery(sql, opts.params)
-        : this.driver.executeQuery(sql);
+        ? this.driver.executeQuery(sql, opts.params, opts.maxRows)
+        : this.driver.executeQuery(sql, undefined, opts.maxRows);
 
       const result = await this.withTimeout(queryPromise, opts.timeout!);
       const truncated = truncateResult(result.rows, opts.maxRows!);

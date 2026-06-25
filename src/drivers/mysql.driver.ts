@@ -65,12 +65,16 @@ export class MySQLDriver extends BaseDriver {
     return this.connected && this.pool !== null;
   }
 
-  async executeQuery(sql: string, params?: unknown[]): Promise<QueryResult> {
+  async executeQuery(sql: string, params?: unknown[], maxRows?: number): Promise<QueryResult> {
     this.ensureConnected();
     const timer = new QueryTimer();
 
     try {
-      const [rows, fields] = await this.pool!.execute<RowDataPacket[] & ResultSetHeader>(sql, params as any[]);
+      let querySql = sql;
+      if (maxRows && maxRows > 0 && /^\s*SELECT\b/i.test(sql) && !/\bLIMIT\s+\d+/i.test(sql)) {
+        querySql = `${sql.replace(/;$/, '')} LIMIT ${maxRows}`;
+      }
+      const [rows, fields] = await this.pool!.execute<RowDataPacket[] & ResultSetHeader>(querySql, params as any[]);
       const isSelect = Array.isArray(rows);
       const duration = timer.elapsed;
 

@@ -70,13 +70,17 @@ export class SQLiteDriver extends BaseDriver {
     }
   }
 
-  async executeQuery(sql: string, params?: unknown[]): Promise<QueryResult> {
+  async executeQuery(sql: string, params?: unknown[], maxRows?: number): Promise<QueryResult> {
     this.ensureConnected();
     const timer = new QueryTimer();
 
     try {
-      const normalizedSql = sql.trim().replace(/;$/, '');
+      let normalizedSql = sql.trim().replace(/;$/, '');
       const isSelect = /^\s*(SELECT|PRAGMA|SHOW|DESCRIBE|EXPLAIN)/i.test(normalizedSql);
+
+      if (isSelect && maxRows && maxRows > 0 && !/\bLIMIT\s+\d+/i.test(normalizedSql)) {
+        normalizedSql = `${normalizedSql} LIMIT ${maxRows}`;
+      }
 
       if (isSelect) {
         const stmt = this.db!.prepare(normalizedSql);

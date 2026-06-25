@@ -74,16 +74,20 @@ export class MSSQLDriver extends BaseDriver {
     return this.connected && this.connection !== null;
   }
 
-  async executeQuery(sql: string, _params?: unknown[]): Promise<QueryResult> {
+  async executeQuery(sql: string, _params?: unknown[], maxRows?: number): Promise<QueryResult> {
     this.ensureConnected();
     const timer = new QueryTimer();
     const tedious: any = await import('tedious');
+    let querySql = sql;
+    if (maxRows && maxRows > 0 && /^\s*SELECT\b/i.test(sql) && !/\bSELECT\s+TOP\s+/i.test(sql)) {
+      querySql = sql.replace(/^\s*SELECT\b/i, `SELECT TOP ${maxRows}`);
+    }
 
     return new Promise<QueryResult>((resolve) => {
       const rows: Record<string, unknown>[] = [];
       const columns: string[] = [];
 
-      const request = new tedious.Request(sql, (err: any) => {
+      const request = new tedious.Request(querySql, (err: any) => {
         if (err) {
           resolve(this.createErrorResult(sql, err, timer.elapsed));
         } else {
