@@ -1,6 +1,6 @@
 {
   "name": "sql-dashboard",
-  "version": "1.0.1",
+  "version": "1.2.0",
   "description": "🚀 Professional SQL management dashboard for admin panels - Execute queries, browse schemas, manage databases with ease",
   "keywords": [
     "sql",
@@ -62,6 +62,26 @@
       "types": "./dist/demo/index.d.ts",
       "import": "./dist/demo/index.mjs",
       "require": "./dist/demo/index.js"
+    },
+    "./admin": {
+      "types": "./dist/admin/index.d.ts",
+      "import": "./dist/admin/index.mjs",
+      "require": "./dist/admin/index.js"
+    },
+    "./security": {
+      "types": "./dist/security/index.d.ts",
+      "import": "./dist/security/index.mjs",
+      "require": "./dist/security/index.js"
+    },
+    "./core": {
+      "types": "./dist/core/index.d.ts",
+      "import": "./dist/core/index.mjs",
+      "require": "./dist/core/index.js"
+    },
+    "./utils": {
+      "types": "./dist/utils/index.d.ts",
+      "import": "./dist/utils/index.mjs",
+      "require": "./dist/utils/index.js"
     }
   },
   "files": [
@@ -76,7 +96,7 @@
   "scripts": {
     "build": "tsup src/index.ts --format cjs,esm --dts --clean --splitting --out-dir dist",
     "build:all": "npm run build && npm run build:subpaths",
-    "build:subpaths": "tsup src/middleware/express.ts src/middleware/fastify.ts src/export/index.ts src/drivers/mysql.driver.ts src/drivers/postgres.driver.ts src/drivers/mssql.driver.ts src/demo/index.ts --format cjs,esm --dts --out-dir dist",
+    "build:subpaths": "tsup src/admin/index.ts src/security/index.ts src/core/index.ts src/utils/index.ts src/middleware/express.ts src/middleware/fastify.ts src/export/index.ts src/drivers/mysql.driver.ts src/drivers/postgres.driver.ts src/drivers/mssql.driver.ts src/drivers/sqlite.driver.ts src/demo/index.ts --format cjs,esm --dts --out-dir dist",
     "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -91,6 +111,7 @@
     "example:basic": "tsx examples/basic.ts",
     "example:express": "tsx examples/express.ts",
     "example:admin": "tsx examples/admin-panel.ts",
+"example:fastify": "tsx examples/fastify.ts",
     "demo": "tsx src/demo/index.ts",
     "dashboard": "tsx dashboard/server.ts",
     "release": "npm run build:all && npm run test && npm run lint",
