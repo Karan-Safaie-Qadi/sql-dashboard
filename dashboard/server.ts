@@ -158,6 +158,16 @@ app.post('/api/explain', async (req, res) => {
   }
 });
 
+app.post('/api/validate', (req, res) => {
+  try {
+    const { sql } = req.body;
+    if (!sql) return res.status(400).json({ error: 'SQL is required' });
+    res.json(db.validate(sql));
+  } catch {
+    res.json({ valid: false, errors: [{ message: 'Validation failed' }] });
+  }
+});
+
 app.post('/api/format', (req, res) => {
   try {
     const { sql } = req.body;

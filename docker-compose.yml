@@ -1,0 +1,17 @@
+version: '3.8'
+services:
+  sql-dashboard:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      DB_TYPE: sqlite
+      DB_MODE: file
+      DB_PATH: /data/dashboard.db
+      PORT: 3000
+      LOG_LEVEL: info
+    volumes:
+      - sql-dashboard-data:/data
+
+volumes:
+  sql-dashboard-data:
