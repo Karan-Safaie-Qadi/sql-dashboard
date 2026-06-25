@@ -9,8 +9,11 @@ export class MySQLDriver extends BaseDriver {
   public readonly type = DriverType.MYSQL;
   private pool: Pool | null = null;
 
-  constructor(config: MySQLConfig) {
+  private poolConfig?: { min?: number; max?: number; acquireTimeout?: number; idleTimeout?: number; [key: string]: unknown };
+
+  constructor(config: MySQLConfig, poolConfig?: { min?: number; max?: number; acquireTimeout?: number; idleTimeout?: number; [key: string]: unknown }) {
     super();
+    this.poolConfig = poolConfig;
     this.config = {
       host: 'localhost',
       port: 3306,
@@ -20,9 +23,6 @@ export class MySQLDriver extends BaseDriver {
       charset: 'utf8mb4',
       timezone: '+00:00',
       multipleStatements: false,
-      waitForConnections: true,
-      connectionLimit: 10,
-      queueLimit: 0,
       ...config,
     };
   }
@@ -30,6 +30,8 @@ export class MySQLDriver extends BaseDriver {
   async connect(): Promise<void> {
     try {
       const config = this.config as unknown as MySQLConfig & { connectionLimit: number; waitForConnections: boolean; queueLimit: number };
+      const ssl = config.ssl;
+      const poolOpts = this.poolConfig || {};
       this.pool = createPool({
         host: config.host || 'localhost',
         port: config.port || 3306,
@@ -39,8 +41,9 @@ export class MySQLDriver extends BaseDriver {
         charset: config.charset || 'utf8mb4',
         timezone: config.timezone || '+00:00',
         multipleStatements: config.multipleStatements || false,
+        ssl: ssl !== undefined ? ssl : undefined,
         waitForConnections: true,
-        connectionLimit: 10,
+        connectionLimit: poolOpts.max || 10,
         queueLimit: 0,
       });
       await this.pool.getConnection();

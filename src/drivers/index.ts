@@ -14,9 +14,9 @@ export function createDriver(config: DriverConfig): BaseDriver {
     case DriverType.SQLITE:
       return new SQLiteDriver(config.connection);
     case DriverType.MYSQL:
-      return new MySQLDriver(config.connection);
+      return new MySQLDriver(config.connection, config.pool);
     case DriverType.POSTGRES:
-      return new PostgresDriver(config.connection);
+      return new PostgresDriver(config.connection, config.pool);
     case DriverType.MSSQL:
       return new MSSQLDriver(config.connection);
     default:

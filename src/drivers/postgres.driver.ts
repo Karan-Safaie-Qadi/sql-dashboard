@@ -10,8 +10,11 @@ export class PostgresDriver extends BaseDriver {
   private pool: Pool | null = null;
   private currentSchema: string = 'public';
 
-  constructor(config: PostgreSQLConfig) {
+  private poolConfig?: { min?: number; max?: number; acquireTimeout?: number; idleTimeout?: number; [key: string]: unknown };
+
+  constructor(config: PostgreSQLConfig, poolConfig?: { min?: number; max?: number; acquireTimeout?: number; idleTimeout?: number; [key: string]: unknown }) {
     super();
+    this.poolConfig = poolConfig;
     this.currentSchema = config.schema || 'public';
     this.config = {
       host: 'localhost',
@@ -26,16 +29,19 @@ export class PostgresDriver extends BaseDriver {
   async connect(): Promise<void> {
     try {
       const config = this.config as unknown as PostgreSQLConfig;
+      const ssl = config.ssl;
+      const poolOpts = this.poolConfig || {};
       this.pool = new Pool({
         host: config.host || 'localhost',
         port: config.port || 5432,
         user: config.user,
         password: config.password,
         database: config.database,
+        ssl: ssl !== undefined ? ssl : undefined,
         application_name: config.applicationName || 'sql-dashboard',
-        max: 10,
-        idleTimeoutMillis: 30000,
-        connectionTimeoutMillis: 5000,
+        max: poolOpts.max || 10,
+        idleTimeoutMillis: poolOpts.idleTimeout || 30000,
+        connectionTimeoutMillis: poolOpts.acquireTimeout || 5000,
       });
       await this.pool.query('SELECT 1');
       this.connected = true;
