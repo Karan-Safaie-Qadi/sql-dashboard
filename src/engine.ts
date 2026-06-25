@@ -29,7 +29,7 @@ export class SQLDashboard extends EventEmitter<DashboardEvents> {
   public readonly schema: SchemaBrowser;
   public readonly history: QueryHistory;
   public readonly config: DashboardConfig;
-  public readonly version: string = '1.0.1';
+  public readonly version: string = '1.2.0';
 
   private driver: BaseDriver;
   private logger: Logger;
@@ -156,8 +156,8 @@ export class SQLDashboard extends EventEmitter<DashboardEvents> {
 
     try {
       const queryPromise = opts.params
-        ? this.driver.executeQuery(sql, opts.params)
-        : this.driver.executeQuery(sql);
+        ? this.driver.executeQuery(sql, opts.params, opts.maxRows)
+        : this.driver.executeQuery(sql, undefined, opts.maxRows);
 
       const result = await this.withTimeout(queryPromise, opts.timeout!);
       const truncated = truncateResult(result.rows, opts.maxRows!);
@@ -227,11 +227,17 @@ export class SQLDashboard extends EventEmitter<DashboardEvents> {
   }
 
   async explain(sql: string): Promise<QueryResult> {
+    if (this.driver.explain) {
+      return this.driver.explain(sql);
+    }
     const explainSql = `EXPLAIN ${sql.trim().replace(/;$/, '')}`;
     return this.query(explainSql);
   }
 
   async analyze(sql: string): Promise<QueryResult> {
+    if (this.driver.analyze) {
+      return this.driver.analyze(sql);
+    }
     const analyzeSql = `EXPLAIN ANALYZE ${sql.trim().replace(/;$/, '')}`;
     return this.query(analyzeSql);
   }
