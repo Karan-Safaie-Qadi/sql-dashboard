@@ -201,7 +201,7 @@ app.get('/api/status', async (_req, res) => {
     const databases = await db.getDatabases();
     res.json({ ...status, databases, driverConfig });
   } catch (err) {
-    res.json({ connected: false, driver: 'unknown', version: '1.0.1', uptime: 0, history: { total: 0, successful: 0, failed: 0 }, databaseVersion: undefined, databases: [] });
+    res.json({ connected: false, driver: 'unknown', version: '1.2.0', uptime: 0, history: { total: 0, successful: 0, failed: 0 }, databaseVersion: undefined, databases: [] });
   }
 });
 

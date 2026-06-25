@@ -29,7 +29,7 @@ export class SQLDashboard extends EventEmitter<DashboardEvents> {
   public readonly schema: SchemaBrowser;
   public readonly history: QueryHistory;
   public readonly config: DashboardConfig;
-  public readonly version: string = '1.0.1';
+  public readonly version: string = '1.2.0';
 
   private driver: BaseDriver;
   private logger: Logger;
