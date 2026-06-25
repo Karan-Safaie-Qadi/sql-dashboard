@@ -1,11 +1,29 @@
 import express from 'express';
 import path from 'path';
+import fs from 'fs';
+import cors from 'cors';
 import { fileURLToPath } from 'url';
 import { createDashboard, DriverType, formatSQL } from '../dist/index.mjs';
+
+const _dirname = path.dirname(fileURLToPath(import.meta.url));
+
+const envPath = path.resolve(_dirname, '..', '.env');
+if (fs.existsSync(envPath)) {
+  const envContent = fs.readFileSync(envPath, 'utf-8');
+  for (const line of envContent.split('\n')) {
+    const trimmed = line.trim();
+    if (trimmed && !trimmed.startsWith('#')) {
+      const eqIdx = trimmed.indexOf('=');
+      if (eqIdx > 0) {
+        const key = trimmed.substring(0, eqIdx).trim();
+        const val = trimmed.substring(eqIdx + 1).trim().replace(/^["']|["']$/g, '');
+        if (!process.env[key]) process.env[key] = val;
+      }
+    }
+  }
+}
 import { toCSV, toJSON, toJSONLines } from '../dist/export/index.mjs';
 import type { DriverConfig } from '../dist/index.mjs';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 function buildDriverConfig(): DriverConfig {
   const type = (process.env.DB_TYPE || 'sqlite').toLowerCase();
@@ -109,8 +127,9 @@ async function seedSampleData() {
 }
 
 const app = express();
+app.use(cors({ origin: process.env.CORS_ORIGIN || true }));
 app.use(express.json({ limit: '5mb' }));
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(_dirname, 'public')));
 
 app.get('/api/config', (_req, res) => {
   const safe = { ...driverConfig, connection: { ...driverConfig.connection } };
@@ -136,6 +155,16 @@ app.post('/api/explain', async (req, res) => {
     res.json(await db.explain(sql));
   } catch (err) {
     res.json({ status: 'error', error: (err as Error).message, id: '', rows: [], columns: [], rowCount: 0, duration: 0, query: req.body.sql || '' });
+  }
+});
+
+app.post('/api/validate', (req, res) => {
+  try {
+    const { sql } = req.body;
+    if (!sql) return res.status(400).json({ error: 'SQL is required' });
+    res.json(db.validate(sql));
+  } catch {
+    res.json({ valid: false, errors: [{ message: 'Validation failed' }] });
   }
 });
 
@@ -182,7 +211,7 @@ app.get('/api/status', async (_req, res) => {
     const databases = await db.getDatabases();
     res.json({ ...status, databases, driverConfig });
   } catch (err) {
-    res.json({ connected: false, driver: 'unknown', version: '1.0.1', uptime: 0, history: { total: 0, successful: 0, failed: 0 }, databaseVersion: undefined, databases: [] });
+    res.json({ connected: false, driver: 'unknown', version: '1.2.0', uptime: 0, history: { total: 0, successful: 0, failed: 0 }, databaseVersion: undefined, databases: [] });
   }
 });
 
