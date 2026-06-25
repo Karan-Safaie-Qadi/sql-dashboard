@@ -38,12 +38,26 @@ const KEYWORDS = [
   'BEGIN', 'COMMIT', 'ROLLBACK', 'SAVEPOINT',
 ];
 
+const STRING_LITERAL_RE = /'(?:[^'\\]|\\.)*'/g;
+
 function uppercaseKeywords(sql: string): string {
+  const strings: string[] = [];
+  const withoutStrings = sql.replace(STRING_LITERAL_RE, (m) => {
+    strings.push(m);
+    return `__STR${strings.length - 1}__`;
+  });
   const pattern = new RegExp(`\\b(${KEYWORDS.join('|')})\\b`, 'gi');
-  return sql.replace(pattern, (match) => match.toUpperCase());
+  const result = withoutStrings.replace(pattern, (match) => match.toUpperCase());
+  return result.replace(/__STR(\d+)__/g, (_, i) => strings[parseInt(i)]);
 }
 
 function formatClauses(sql: string, indent: string): string {
+  const strings: string[] = [];
+  let noStrings = sql.replace(STRING_LITERAL_RE, (m) => {
+    strings.push(m);
+    return `__STR${strings.length - 1}__`;
+  });
+
   const clausePatterns = [
     'SELECT', 'FROM', 'WHERE', 'GROUP BY', 'HAVING',
     'ORDER BY', 'LIMIT', 'OFFSET',
@@ -52,7 +66,7 @@ function formatClauses(sql: string, indent: string): string {
 
   for (const clause of clausePatterns) {
     const regex = new RegExp(`\\b${clause}\\b`, 'i');
-    sql = sql.replace(regex, `\n${clause}`);
+    noStrings = noStrings.replace(regex, `\n${clause}`);
   }
 
   const joinPatterns = [
@@ -63,12 +77,13 @@ function formatClauses(sql: string, indent: string): string {
 
   for (const clause of joinPatterns) {
     const regex = new RegExp(`\\n${clause}\\b`, 'i');
-    if (regex.test(sql)) continue;
+    if (regex.test(noStrings)) continue;
     const inlineRegex = new RegExp(`\\b${clause}\\b`, 'i');
-    sql = sql.replace(inlineRegex, `\n${clause}`);
+    noStrings = noStrings.replace(inlineRegex, `\n${clause}`);
   }
 
-  const lines = sql.split('\n').map((line) => line.trim());
+  let result = noStrings.replace(/__STR(\d+)__/g, (_, i) => strings[parseInt(i)]);
+  const lines = result.split('\n').map((line) => line.trim());
   return lines
     .map((line, i) => {
       if (i > 0 && !line.startsWith(indent)) {

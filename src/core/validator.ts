@@ -104,6 +104,30 @@ export function validateQuery(
     });
   }
 
+  if (security?.bannedDatabases && security.bannedDatabases.length > 0) {
+    const dbPattern = /\b(?:USE|SET)\s+[`"']?(\w+)[`"']?\b/i;
+    const match = dbPattern.exec(trimmedSql);
+    if (match && security.bannedDatabases.some((db) => db.toLowerCase() === match[1].toLowerCase())) {
+      errors.push({
+        code: 'BANNED_DATABASE',
+        message: `Database "${match[1]}" is banned`,
+        severity: 'error',
+      });
+    }
+  }
+
+  if (security?.allowedDatabases && security.allowedDatabases.length > 0) {
+    const dbPattern = /\b(?:USE|SET)\s+[`"']?(\w+)[`"']?\b/i;
+    const match = dbPattern.exec(trimmedSql);
+    if (match && !security.allowedDatabases.some((db) => db.toLowerCase() === match[1].toLowerCase())) {
+      errors.push({
+        code: 'BANNED_DATABASE',
+        message: `Database "${match[1]}" is not in the allowed list`,
+        severity: 'error',
+      });
+    }
+  }
+
   if (security?.requireWhere && ['UPDATE', 'DELETE'].includes(statementType)) {
     if (!/\bWHERE\b/i.test(trimmedSql)) {
       errors.push({
