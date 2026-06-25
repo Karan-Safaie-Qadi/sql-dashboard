@@ -41,7 +41,10 @@ export class RateLimiter {
     const entry = this.store.get(key);
 
     if (!entry || entry.resetAt <= now) {
-      const maxQueries = this.config.maxQueriesPerUser[key] || this.config.maxQueries;
+      const maxQueries = key in this.config.maxQueriesPerUser ? this.config.maxQueriesPerUser[key] : this.config.maxQueries;
+      if (maxQueries <= 0) {
+        return { allowed: false, remaining: 0, resetAt: now + this.config.windowMs, error: this.config.errorMessage };
+      }
       this.store.set(key, {
         count: 1,
         resetAt: now + this.config.windowMs,
@@ -49,7 +52,7 @@ export class RateLimiter {
       return { allowed: true, remaining: maxQueries - 1, resetAt: now + this.config.windowMs };
     }
 
-    const maxQueries = this.config.maxQueriesPerUser[key] || this.config.maxQueries;
+    const maxQueries = key in this.config.maxQueriesPerUser ? this.config.maxQueriesPerUser[key] : this.config.maxQueries;
     entry.count++;
 
     if (entry.count > maxQueries) {
@@ -66,10 +69,11 @@ export class RateLimiter {
 
   getRemaining(key: string): number {
     const entry = this.store.get(key);
+    const maxQueries = key in this.config.maxQueriesPerUser ? this.config.maxQueriesPerUser[key] : this.config.maxQueries;
+    if (maxQueries <= 0) return 0;
     if (!entry || entry.resetAt <= Date.now()) {
-      return this.config.maxQueries;
+      return maxQueries;
     }
-    const maxQueries = this.config.maxQueriesPerUser[key] || this.config.maxQueries;
     return Math.max(0, maxQueries - entry.count);
   }
 
