@@ -12,6 +12,7 @@ export class SQLiteDriver extends BaseDriver {
   private sqlJs: SqlJsStatic | null = null;
   private dbPath: string;
   private memoryMode: boolean;
+  private dirty: boolean = false;
 
   constructor(config: SQLiteConfig) {
     super();
@@ -49,7 +50,7 @@ export class SQLiteDriver extends BaseDriver {
 
   async disconnect(): Promise<void> {
     if (this.db) {
-      if (!this.memoryMode && this.dbPath !== ':memory:') {
+      if (!this.memoryMode && this.dbPath !== ':memory:' && this.dirty) {
         this.saveToFile();
       }
       this.db.close();
@@ -70,13 +71,17 @@ export class SQLiteDriver extends BaseDriver {
     }
   }
 
-  async executeQuery(sql: string, params?: unknown[]): Promise<QueryResult> {
+  async executeQuery(sql: string, params?: unknown[], maxRows?: number): Promise<QueryResult> {
     this.ensureConnected();
     const timer = new QueryTimer();
 
     try {
-      const normalizedSql = sql.trim().replace(/;$/, '');
+      let normalizedSql = sql.trim().replace(/;$/, '');
       const isSelect = /^\s*(SELECT|PRAGMA|SHOW|DESCRIBE|EXPLAIN)/i.test(normalizedSql);
+
+      if (isSelect && maxRows && maxRows > 0 && !/\bLIMIT\s+\d+/i.test(normalizedSql)) {
+        normalizedSql = `${normalizedSql} LIMIT ${maxRows}`;
+      }
 
       if (isSelect) {
         const stmt = this.db!.prepare(normalizedSql);
@@ -96,9 +101,19 @@ export class SQLiteDriver extends BaseDriver {
 
         return this.createResult(sql, rows, timer.elapsed);
       } else {
+        const isInsert = /^\s*INSERT\s/i.test(normalizedSql);
         this.db!.run(normalizedSql, params as (number | string | Uint8Array)[]);
         const affectedRows = this.db!.getRowsModified();
-        return this.createResult(sql, [], timer.elapsed, affectedRows);
+        if (affectedRows > 0) this.dirty = true;
+        const result = this.createResult(sql, [], timer.elapsed, affectedRows);
+        if (isInsert && affectedRows > 0) {
+          const idResult = this.db!.exec('SELECT last_insert_rowid() as id;');
+          const idRows = idResult[0]?.values?.[0];
+          if (idRows) {
+            (result as any).insertedId = idRows[0];
+          }
+        }
+        return result;
       }
     } catch (error) {
       return this.createErrorResult(sql, error as Error, timer.elapsed);
