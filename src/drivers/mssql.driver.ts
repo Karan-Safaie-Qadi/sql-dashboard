@@ -1,4 +1,5 @@
 import { BaseDriver } from './base.driver';
+import { v4 as uuid } from 'uuid';
 import type { QueryResult, ColumnInfo, TableInfo, IndexInfo, ForeignKeyInfo, ViewInfo, SchemaInfo, MSSQLConfig } from '../types';
 import { DriverType } from '../types';
 import { QueryTimer } from '../utils/timer';
@@ -73,31 +74,45 @@ export class MSSQLDriver extends BaseDriver {
     return this.connected && this.connection !== null;
   }
 
-  async executeQuery(sql: string, _params?: unknown[]): Promise<QueryResult> {
+  async executeQuery(sql: string, _params?: unknown[], maxRows?: number): Promise<QueryResult> {
     this.ensureConnected();
     const timer = new QueryTimer();
     const tedious: any = await import('tedious');
+    let querySql = sql;
+    if (maxRows && maxRows > 0 && /^\s*SELECT\b/i.test(sql) && !/\bSELECT\s+TOP\s+/i.test(sql)) {
+      querySql = sql.replace(/^\s*SELECT\b/i, `SELECT TOP ${maxRows}`);
+    }
 
     return new Promise<QueryResult>((resolve) => {
       const rows: Record<string, unknown>[] = [];
       const columns: string[] = [];
 
-      const request = new tedious.Request(sql, (err: any) => {
+      const request = new tedious.Request(querySql, (err: any) => {
         if (err) {
           resolve(this.createErrorResult(sql, err, timer.elapsed));
         } else {
           if (rows.length > 0) {
             resolve(this.createResult(sql, rows, timer.elapsed));
           } else {
-            resolve({
-              id: crypto.randomUUID(),
+            const queryResult: QueryResult = {
+              id: uuid(),
               status: 'success',
               rows: [],
               columns: [],
               rowCount: 0,
               duration: timer.elapsed,
               query: sql,
-            });
+            };
+            if (/^\s*INSERT\s/i.test(sql.trim()) && columns.length === 0) {
+              this.executeQuery('SELECT SCOPE_IDENTITY() as id').then((idResult) => {
+                if (idResult.rows.length > 0 && idResult.rows[0]?.id != null) {
+                  (queryResult as any).insertedId = idResult.rows[0].id;
+                }
+                resolve(queryResult);
+              }).catch(() => resolve(queryResult));
+            } else {
+              resolve(queryResult);
+            }
           }
         }
       });
@@ -270,5 +285,13 @@ export class MSSQLDriver extends BaseDriver {
   async getDatabases(): Promise<string[]> {
     const result = await this.executeQuery('SELECT name FROM sys.databases ORDER BY name;');
     return result.rows.map((r: any) => r.name as string);
+  }
+
+  async explain(sql: string): Promise<QueryResult> {
+    return this.executeQuery(`SET SHOWPLAN_XML ON; ${sql.replace(/;$/, '')}; SET SHOWPLAN_XML OFF;`);
+  }
+
+  async analyze(sql: string): Promise<QueryResult> {
+    return this.executeQuery(`SET STATISTICS PROFILE ON; ${sql.replace(/;$/, '')}; SET STATISTICS PROFILE OFF;`);
   }
 }
