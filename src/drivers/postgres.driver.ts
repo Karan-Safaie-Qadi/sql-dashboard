@@ -10,8 +10,11 @@ export class PostgresDriver extends BaseDriver {
   private pool: Pool | null = null;
   private currentSchema: string = 'public';
 
-  constructor(config: PostgreSQLConfig) {
+  private poolConfig?: { min?: number; max?: number; acquireTimeout?: number; idleTimeout?: number; [key: string]: unknown };
+
+  constructor(config: PostgreSQLConfig, poolConfig?: { min?: number; max?: number; acquireTimeout?: number; idleTimeout?: number; [key: string]: unknown }) {
     super();
+    this.poolConfig = poolConfig;
     this.currentSchema = config.schema || 'public';
     this.config = {
       host: 'localhost',
@@ -26,16 +29,19 @@ export class PostgresDriver extends BaseDriver {
   async connect(): Promise<void> {
     try {
       const config = this.config as unknown as PostgreSQLConfig;
+      const ssl = config.ssl;
+      const poolOpts = this.poolConfig || {};
       this.pool = new Pool({
         host: config.host || 'localhost',
         port: config.port || 5432,
         user: config.user,
         password: config.password,
         database: config.database,
+        ssl: ssl !== undefined ? ssl : undefined,
         application_name: config.applicationName || 'sql-dashboard',
-        max: 10,
-        idleTimeoutMillis: 30000,
-        connectionTimeoutMillis: 5000,
+        max: poolOpts.max || 10,
+        idleTimeoutMillis: poolOpts.idleTimeout || 30000,
+        connectionTimeoutMillis: poolOpts.acquireTimeout || 5000,
       });
       await this.pool.query('SELECT 1');
       this.connected = true;
@@ -56,13 +62,16 @@ export class PostgresDriver extends BaseDriver {
     return this.connected && this.pool !== null;
   }
 
-  async executeQuery(sql: string, params?: unknown[]): Promise<QueryResult> {
+  async executeQuery(sql: string, params?: unknown[], maxRows?: number): Promise<QueryResult> {
     this.ensureConnected();
     const timer = new QueryTimer();
 
     try {
-      const normalizedSql = sql.trim().replace(/;$/, '');
+      let normalizedSql = sql.trim().replace(/;$/, '');
       const isSelect = /^\s*(SELECT|WITH|SHOW|DESCRIBE|EXPLAIN|ANALYZE)/i.test(normalizedSql);
+      if (isSelect && maxRows && maxRows > 0 && !/\bLIMIT\s+\d+/i.test(normalizedSql)) {
+        normalizedSql = `${normalizedSql} LIMIT ${maxRows}`;
+      }
       const result = await this.pool!.query(normalizedSql, params as any[]);
 
       if (isSelect || result.rows.length > 0) {
@@ -76,7 +85,7 @@ export class PostgresDriver extends BaseDriver {
           query: sql,
         };
       } else {
-        return {
+        const queryResult: QueryResult = {
           id: uuid(),
           status: 'success',
           rows: [],
@@ -86,6 +95,10 @@ export class PostgresDriver extends BaseDriver {
           duration: timer.elapsed,
           query: sql,
         };
+        if (/^\s*INSERT\s/i.test(normalizedSql) && (result.rowCount || 0) > 0) {
+          (queryResult as any).insertedId = result.rows[0]?.id ?? result.rows[0]?.ID;
+        }
+        return queryResult;
       }
     } catch (error) {
       return this.createErrorResult(sql, error as Error, timer.elapsed);
