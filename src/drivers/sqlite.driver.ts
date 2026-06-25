@@ -12,6 +12,7 @@ export class SQLiteDriver extends BaseDriver {
   private sqlJs: SqlJsStatic | null = null;
   private dbPath: string;
   private memoryMode: boolean;
+  private dirty: boolean = false;
 
   constructor(config: SQLiteConfig) {
     super();
@@ -49,7 +50,7 @@ export class SQLiteDriver extends BaseDriver {
 
   async disconnect(): Promise<void> {
     if (this.db) {
-      if (!this.memoryMode && this.dbPath !== ':memory:') {
+      if (!this.memoryMode && this.dbPath !== ':memory:' && this.dirty) {
         this.saveToFile();
       }
       this.db.close();
@@ -103,6 +104,7 @@ export class SQLiteDriver extends BaseDriver {
         const isInsert = /^\s*INSERT\s/i.test(normalizedSql);
         this.db!.run(normalizedSql, params as (number | string | Uint8Array)[]);
         const affectedRows = this.db!.getRowsModified();
+        if (affectedRows > 0) this.dirty = true;
         const result = this.createResult(sql, [], timer.elapsed, affectedRows);
         if (isInsert && affectedRows > 0) {
           const idResult = this.db!.exec('SELECT last_insert_rowid() as id;');
