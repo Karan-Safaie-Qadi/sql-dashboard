@@ -1,21 +1,9 @@
 const SQL_INJECTION_PATTERNS = [
-  /'.*OR.*'='/i,
-  /'.*AND.*'='/i,
-  /OR\s+'.*'='.*'/i,
-  /AND\s+'.*'='.*'/i,
-  /\bOR\s+\d+\s*=\s*\d+/i,
-  /\bAND\s+\d+\s*=\s*\d+/i,
-  /\bOR\s+\w+\s*=\s*\w+/i,
-  /\bAND\s+\w+\s*=\s*\w+/i,
-  /--\s*$/m,
-  /\/\*.*\*\//,
   /;\s*DROP\s+/i,
   /;\s*DELETE\s+/i,
   /;\s*UPDATE\s+/i,
   /;\s*INSERT\s+/i,
   /;\s*EXEC(?:UTE)?\s+/i,
-  /\bUNION\s+ALL\s+SELECT\b/i,
-  /\bUNION\s+SELECT\b/i,
   /\bINTO\s+OUTFILE\b/i,
   /\bINTO\s+DUMPFILE\b/i,
   /\bLOAD_FILE\s*\(/i,
@@ -23,6 +11,15 @@ const SQL_INJECTION_PATTERNS = [
   /\bWAITFOR\s+DELAY\b/i,
   /\bBENCHMARK\s*\(/i,
   /\bSLEEP\s*\(/i,
+];
+
+const INJECTION_STRING_PATTERNS = [
+  /'.*OR.*'='/i,
+  /'.*AND.*'='/i,
+  /OR\s+'.*'='.*'/i,
+  /AND\s+'.*'='.*'/i,
+  /\bUNION\s+ALL\s+SELECT\b/i,
+  /\bUNION\s+SELECT\b/i,
 ];
 
 const STRING_LITERALS = /'(?:[^'\\]|\\.)*'/g;
@@ -39,15 +36,30 @@ export function detectInjection(sql: string): boolean {
   const noComments = sql
     .replace(/--.*$/gm, '')
     .replace(/\/\*[\s\S]*?\*\//g, '');
-  const noStrings = noComments.replace(STRING_LITERALS, '');
-  if (SQL_INJECTION_PATTERNS.some((pattern) => pattern.test(noStrings))) {
+
+  if (SQL_INJECTION_PATTERNS.some((pattern) => pattern.test(noComments))) {
     return true;
   }
-  for (const pattern of SQL_INJECTION_PATTERNS) {
-    if (pattern.test(noComments)) {
+
+  const strings: string[] = [];
+  const noStrings = noComments.replace(STRING_LITERALS, (m) => {
+    strings.push(m);
+    return '';
+  });
+
+  if (noStrings !== noComments) {
+    const original = noComments;
+    if (INJECTION_STRING_PATTERNS.some((pattern) => pattern.test(original))) {
       return true;
     }
   }
+
+  for (const pattern of SQL_INJECTION_PATTERNS) {
+    if (pattern.test(noStrings)) {
+      return true;
+    }
+  }
+
   return false;
 }
 
