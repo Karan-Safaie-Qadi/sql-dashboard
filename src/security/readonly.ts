@@ -25,8 +25,8 @@ export class ReadOnlyGuard {
     if (this.rule.allowShow && trimmed.startsWith('SHOW')) return true;
     if (this.rule.allowDescribe && trimmed.startsWith('DESCRIBE')) return true;
     if (this.rule.allowExplain && trimmed.startsWith('EXPLAIN')) return true;
-    if (trimmed.startsWith('WITH')) return true;
-    if (trimmed.startsWith('PRAGMA')) return true;
+    if (this.rule.allowSelect && trimmed.startsWith('WITH')) return true;
+    if (this.rule.allowSelect && trimmed.startsWith('PRAGMA')) return true;
 
     return false;
   }
