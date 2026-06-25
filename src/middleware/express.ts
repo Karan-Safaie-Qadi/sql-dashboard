@@ -80,10 +80,9 @@ export function createExpressRouter(options: ExpressMiddlewareOptions): Router {
     try {
       const { sql } = req.body;
       if (!sql) return res.status(400).json({ error: 'SQL is required' });
-      const result = await db.explain(sql);
-      res.json(result);
+      return res.json(await db.explain(sql));
     } catch (error) {
-      res.status(500).json({ error: (error as Error).message });
+      return res.status(500).json({ error: (error as Error).message });
     }
   };
 
@@ -91,19 +90,18 @@ export function createExpressRouter(options: ExpressMiddlewareOptions): Router {
     try {
       const { sql } = req.body;
       if (!sql) return res.status(400).json({ error: 'SQL is required' });
-      const result = db.validate(sql);
-      res.json(result);
+      return res.json(db.validate(sql));
     } catch (error) {
-      res.status(500).json({ error: (error as Error).message });
+      return res.status(500).json({ error: (error as Error).message });
     }
   };
 
   const handleHealth = async (_req: Request, res: Response) => {
     try {
-      const status = await db.status();
-      res.json({ status: 'ok', connected: status.connected, driver: status.driver, version: status.version });
+      const s = await db.status();
+      return res.json({ status: 'ok', connected: s.connected, driver: s.driver, version: s.version });
     } catch (error) {
-      res.status(503).json({ status: 'error', error: (error as Error).message });
+      return res.status(503).json({ status: 'error', error: (error as Error).message });
     }
   };
 

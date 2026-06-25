@@ -41,7 +41,7 @@ export class MySQLDriver extends BaseDriver {
         charset: config.charset || 'utf8mb4',
         timezone: config.timezone || '+00:00',
         multipleStatements: config.multipleStatements || false,
-        ssl: ssl !== undefined ? ssl : undefined,
+        ssl: ssl !== undefined ? (typeof ssl === 'object' ? ssl : {} as any) : undefined,
         waitForConnections: true,
         connectionLimit: poolOpts.max || 10,
         queueLimit: 0,
