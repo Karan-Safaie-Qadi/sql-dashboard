@@ -17,6 +17,10 @@ export interface DashboardOptions {
   autoConnect?: boolean;
 }
 
-export interface DashboardConfig extends Required<DashboardOptions> {
+export interface DashboardConfig {
+  driver: DriverConfig;
+  security: SecurityConfig;
+  logger: LoggerConfig;
+  autoConnect: boolean;
   version: string;
 }
