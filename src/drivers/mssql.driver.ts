@@ -126,12 +126,45 @@ export class MSSQLDriver extends BaseDriver {
 
   async executeBatch(queries: string[]): Promise<QueryResult[]> {
     const results: QueryResult[] = [];
-    for (const query of queries) {
-      const result = await this.executeQuery(query);
-      results.push(result);
-      if (result.status === 'error') break;
-    }
-    return results;
+    const tedious: any = await import('tedious');
+
+    return new Promise<QueryResult[]>((resolve) => {
+      const request = new tedious.Request('BEGIN TRANSACTION;', (err: any) => {
+        if (err) {
+          results.push(this.createErrorResult('Batch', err, 0));
+          return resolve(results);
+        }
+
+        let idx = 0;
+        const runNext = () => {
+          if (idx >= queries.length) {
+            const commitReq = new tedious.Request('COMMIT;', (commitErr: any) => {
+              if (commitErr) {
+                results.push(this.createErrorResult('Batch', commitErr, 0));
+              }
+              resolve(results);
+            });
+            this.connection!.execSql(commitReq);
+            return;
+          }
+
+          this.executeQuery(queries[idx]).then((result) => {
+            results.push(result);
+            if (result.status === 'error') {
+              const rollbackReq = new tedious.Request('ROLLBACK;', () => resolve(results));
+              this.connection!.execSql(rollbackReq);
+            } else {
+              idx++;
+              runNext();
+            }
+          });
+        };
+
+        runNext();
+      });
+
+      this.connection!.execSql(request);
+    });
   }
 
   async getSchema(): Promise<SchemaInfo> {

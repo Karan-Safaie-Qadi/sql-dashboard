@@ -56,6 +56,10 @@ export async function registerFastifyPlugin(
     const status = await db.status();
     return reply.send(status);
   });
+
+  fastify.addHook('onClose', async () => {
+    db.destroy();
+  });
 }
 
 export default registerFastifyPlugin;

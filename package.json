@@ -76,7 +76,7 @@
   "scripts": {
     "build": "tsup src/index.ts --format cjs,esm --dts --clean --splitting --out-dir dist",
     "build:all": "npm run build && npm run build:subpaths",
-    "build:subpaths": "tsup src/middleware/express.ts src/middleware/fastify.ts src/export/index.ts src/drivers/mysql.driver.ts src/drivers/postgres.driver.ts src/drivers/mssql.driver.ts src/demo/index.ts --format cjs,esm --dts --out-dir dist",
+    "build:subpaths": "tsup src/middleware/express.ts src/middleware/fastify.ts src/export/index.ts src/drivers/mysql.driver.ts src/drivers/postgres.driver.ts src/drivers/mssql.driver.ts src/drivers/sqlite.driver.ts src/demo/index.ts --format cjs,esm --dts --out-dir dist",
     "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
     "test": "vitest run",
     "test:watch": "vitest",

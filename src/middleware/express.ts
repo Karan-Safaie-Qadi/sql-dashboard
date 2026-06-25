@@ -83,6 +83,10 @@ export function createExpressRouter(options: ExpressMiddlewareOptions): Router {
   router.get(`${basePath}/history`, handleHistory);
   router.get(`${basePath}/status`, handleStatus);
 
+  (router as any).close = async () => {
+    db.destroy();
+  };
+
   return router;
 }
 
