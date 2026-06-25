@@ -111,6 +111,7 @@
     "example:basic": "tsx examples/basic.ts",
     "example:express": "tsx examples/express.ts",
     "example:admin": "tsx examples/admin-panel.ts",
+"example:fastify": "tsx examples/fastify.ts",
     "demo": "tsx src/demo/index.ts",
     "dashboard": "tsx dashboard/server.ts",
     "release": "npm run build:all && npm run test && npm run lint",
