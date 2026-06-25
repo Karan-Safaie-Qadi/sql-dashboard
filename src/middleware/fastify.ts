@@ -13,6 +13,25 @@ export async function registerFastifyPlugin(
   const db = new SQLDashboard(options);
   const basePath = options.basePath || '/sql-dashboard';
 
+  fastify.post(`${basePath}/explain`, async (request, reply) => {
+    const { sql } = request.body as { sql: string };
+    if (!sql) return reply.status(400).send({ error: 'SQL is required' });
+    const result = await db.explain(sql);
+    return reply.send(result);
+  });
+
+  fastify.post(`${basePath}/validate`, async (request, reply) => {
+    const { sql } = request.body as { sql: string };
+    if (!sql) return reply.status(400).send({ error: 'SQL is required' });
+    const result = db.validate(sql);
+    return reply.send(result);
+  });
+
+  fastify.get(`${basePath}/health`, async (_request, reply) => {
+    const status = await db.status();
+    return reply.send({ status: 'ok', connected: status.connected, driver: status.driver, version: status.version });
+  });
+
   fastify.post(`${basePath}/query`, async (request, reply) => {
     const { sql, params } = request.body as { sql: string; params?: unknown[] };
     if (!sql) {
@@ -55,6 +74,10 @@ export async function registerFastifyPlugin(
   fastify.get(`${basePath}/status`, async (_request, reply) => {
     const status = await db.status();
     return reply.send(status);
+  });
+
+  fastify.addHook('onClose', async () => {
+    db.destroy();
   });
 }
 

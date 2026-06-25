@@ -76,12 +76,48 @@ export function createExpressRouter(options: ExpressMiddlewareOptions): Router {
     }
   };
 
+  const handleExplain = async (req: Request, res: Response) => {
+    try {
+      const { sql } = req.body;
+      if (!sql) return res.status(400).json({ error: 'SQL is required' });
+      return res.json(await db.explain(sql));
+    } catch (error) {
+      return res.status(500).json({ error: (error as Error).message });
+    }
+  };
+
+  const handleValidate = async (req: Request, res: Response) => {
+    try {
+      const { sql } = req.body;
+      if (!sql) return res.status(400).json({ error: 'SQL is required' });
+      return res.json(db.validate(sql));
+    } catch (error) {
+      return res.status(500).json({ error: (error as Error).message });
+    }
+  };
+
+  const handleHealth = async (_req: Request, res: Response) => {
+    try {
+      const s = await db.status();
+      return res.json({ status: 'ok', connected: s.connected, driver: s.driver, version: s.version });
+    } catch (error) {
+      return res.status(503).json({ status: 'error', error: (error as Error).message });
+    }
+  };
+
   router.post(`${basePath}/query`, handleQuery);
+  router.post(`${basePath}/explain`, handleExplain);
+  router.post(`${basePath}/validate`, handleValidate);
+  router.get(`${basePath}/health`, handleHealth);
   router.get(`${basePath}/schema`, handleSchema);
   router.get(`${basePath}/tables`, handleTables);
   router.get(`${basePath}/tables/:tableName`, handleTableDetail);
   router.get(`${basePath}/history`, handleHistory);
   router.get(`${basePath}/status`, handleStatus);
+
+  (router as any).close = async () => {
+    db.destroy();
+  };
 
   return router;
 }
